@@ -65,22 +65,15 @@ clasificador p = fst (unwrap (minimum (lista_dist p)))
 
 count :: Eq a => a -> [a] -> Int
 count a = length . filter (==a)
--- porcentajes:
 
 rmdups :: Eq a => [a] -> [a]
 rmdups [] = []
 rmdups (x:xs) = x : rmdups(filter (/=x) xs)
 
-clasif_todos :: [Color]
-clasif_todos = [clasificador (newPoint x y z) | x<-l, y<-l, z<-l]
+todos :: [Color]
+todos = [clasificador (newPoint x y z) | x<-l, y<-l, z<-l]
     where l = 0:[5,10..255]
 
 porcentajes :: [(Color, Int)]  
---porcentajes = rmdups . map (\x -> (x, count x clasif_todos)) (zip clasif_todos (replicate 1))
 porcentajes = [(x, count x clasif_todos) | x <- allColors]
 
-{-
-l = 0:[5,10..255]
-lColores = [clasificador (newPoint x y z) | x<-l, y<-l, z<-l]
-cuenta = rmdups . map (\x -> (x, count x lColores)) lColores
--}
