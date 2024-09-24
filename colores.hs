@@ -75,5 +75,5 @@ todos = [clasificador (newPoint x y z) | x<-l, y<-l, z<-l]
     where l = 0:[5,10..255]
 
 porcentajes :: [(Color, Int)]  
-porcentajes = [(x, count x clasif_todos) | x <- allColors]
+porcentajes = [(x, count x todos) | x <- allColors]
 
