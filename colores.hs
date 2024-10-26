@@ -15,7 +15,12 @@ newPoint :: Int -> Int -> Int -> Point
 newPoint x y z = (newCoord x, newCoord y, newCoord z)
 
 newCoord :: Int -> Coord
-newCoord x = C x
+newCoord x
+    | valid x = C x
+    | otherwise = error "Las coordenadas tienen que estar entre 0 y 255"
+
+valid :: Int -> Bool
+valid x = x >= 0 && x <= 255
 
 distance :: Point -> Point -> Int
 distance (C x1, C y1, C z1) (C x2, C y2, C z2) = (x1 - x2) ^ 2 + (y2 - y1) ^ 2 + (z1 - z2) ^ 2
@@ -77,3 +82,4 @@ todos = [clasificador (newPoint x y z) | x<-l, y<-l, z<-l]
 porcentajes :: [(Color, Int)]  
 porcentajes = [(x, count x todos) | x <- allColors]
 
+--Fallos raros (52, 179, 166), (62, 8, 133)
