@@ -28,6 +28,9 @@ instance Enum Intervalo where
 semitonosDif2Notas :: Nota -> Nota -> Int
 semitonosDif2Notas n1 n2 = nota_to_PC n2 - nota_to_PC n1
 
+genIs :: Int -> Int -> [Intervalo]
+genIs x y = [I(n,m) | n <- [x .. y], m <- [Dim .. Aum], intervValido(I(n,m))]
+
 intervValido :: Intervalo -> Bool
 intervValido (I (num, modif))
         | num > 8 = intervValido (I(modul, modif))
@@ -54,11 +57,11 @@ intervalo_2notas :: Nota -> Nota -> Intervalo
 intervalo_2notas n1 n2
     | n1 >= n2 = error "Intervalo igual o negativo"
     | otherwise = I(7*escalas + i + 1, mod)
-    where 
+    where
         (Nota nb1 alt1 esc1) = n1
         (Nota nb2 alt2 esc2) = n2
         escalas = esc2 - esc1
-        i = (index notas_basicas nb2) - (index notas_basicas nb1)
+        i = (index all_notas_basicas nb2) - (index all_notas_basicas nb1)
         iPuro = 7*escalas + i + 1
         mod = modif iPuro (semitonosDif2Notas n1 n2)
 
@@ -88,32 +91,49 @@ inter_semit_canonico n
 --semits_de_intervalo :: Intervalo -> Int
 --semits_de_intervalo I(n,m) = inter_semit_canonico n + 
 
-semits_de_intervalo :: Intervalo -> Int
-semits_de_intervalo (intervalo)
-    | not (intervValido intervalo) = error "Intervalo no valido"
-    | otherwise = semitonosDif2Notas n0 n1
+intervaloToAlt :: Intervalo -> Int
+intervaloToAlt (I(n,m))
+    | not (intervValido (I(n,m))) = error "Intervalo no valido"
+    | (xs !! 1 == J) = i - 1
+    | otherwise = i - 2
     where
-        n0 = newNote Do N 0
-        n1 = calc_intervalo n0 intervalo
+        xs = modifsPosibles n
+        i = index xs m
+
+
+semits_de_intervalo :: Intervalo -> Int
+semits_de_intervalo (I(n,m))
+    | not (intervValido (I(n,m))) = error "Intervalo no valido"
+    | otherwise = (inter_semit_canonico n) + intervaloToAlt (I(n,m))
+--    | otherwise = semitonosDif2Notas n0 n1
+
+  --      n0 = newNote Do N 0
+    --    n1 = calcIntervalo n0 intervalo
 
 --falla
-calc_intervalo :: Nota -> Intervalo -> Nota
-calc_intervalo n (I(interv, mod))
+--usar semits de intervalo e inter semit canonico
+calcIntervalo :: Nota -> Intervalo -> Nota
+calcIntervalo n (I(interv, mod))
     | not (intervValido (I(interv,mod))) = error "Intervalo no válido"
-    | (!!) xs 1 == J = alterar (canonic_calc_intervalo n interv) (posx - 1)
-    | otherwise = alterar (canonic_calc_intervalo n interv) (posx - 2)
+    | otherwise = alterar nmid ajuste
+--    | (!!) xs 1 == J = alterar (canonic_calc_intervalo n interv) (posx - 1)
+--    | otherwise = alterar (canonic_calc_intervalo n interv) (posx - 2)    | 
     where
-        xs = modifsPosibles interv
-        posx = index xs mod
+        nmid = canonic_calc_intervalo n interv
+        real = semits_de_intervalo (I(interv, mod))
+        estim = semits_de_intervalo (intervalo_2notas n nmid)
+        ajuste = real - estim
+--        xs = modifsPosibles interv
+  --      posx = index xs mod
 
 canonic_calc_intervalo :: Nota -> Int -> Nota
 canonic_calc_intervalo (Nota n alt oct) interv 
     | otherwise = newNote n2 alt2 oct2
     where
-        i1 = index notas_basicas n
+        i1 = index all_notas_basicas n
         i2 = i1 + interv - 1
         (cambioOct, posx) = int_division i2 7
-        n2 = notas_basicas !! posx
+        n2 = all_notas_basicas !! posx
         oct2 = oct + cambioOct
         alt2 = N
 
@@ -125,11 +145,11 @@ inversion intervalo
     where
         I(num, _) = intervalo
         n0 = newNote Do N 0
-        n1 = calc_intervalo n0 intervalo
+        n1 = calcIntervalo n0 intervalo
         difOctavas = (octava n1) - (octava n0)
 
 octavas_exactas :: Int -> Bool
 octavas_exactas x = (x-1) `mod` 7 == 0
 
-transponer :: Intervalo -> Nota -> Nota
-transponer i n = calc_intervalo n i
+transponer :: Intervalo -> [Nota] -> [Nota]
+transponer i xs = map (\n -> calcIntervalo n i) xs

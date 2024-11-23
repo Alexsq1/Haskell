@@ -17,6 +17,16 @@ data Nota = Nota {nota :: BPC, alt :: Alteracion, octava :: Octava} deriving (Eq
 newNote :: BPC -> Alteracion -> Octava -> Nota
 newNote n alt oct = Nota {nota = n, alt = alt, octava = oct}
 
+generarAsc :: [BPC] -> [Nota]
+generarAsc = generarAscAux 0
+    where
+        generarAscAux n [] = []
+        generarAscAux n [x] = [newNote x N n]
+        generarAscAux n (x:y:xs)
+            | x > y = (newNote x N n) : generarAscAux (n+1) (y:xs)
+            | otherwise = (newNote x N n) : generarAscAux n (y:xs)
+        
+
 instance Show Nota where
     show (Nota nota alteracion octava) = show nota ++ show alteracion ++ show octava
 
@@ -42,9 +52,9 @@ instance Ord Nota where
             bpc2 = nota n2
 
 --    compare n1 n2 = compare (nota_to_PC n1) (nota_to_PC n2)
-
+   
 alt_to_semit :: Alteracion -> Int
-alt_to_semit a = index alteraciones a - 2
+alt_to_semit a = index all_alteraciones a - 2
 
 nota_to_PC :: Nota -> Int
 nota_to_PC (Nota n a e) = notabasica_to_pc n + alt_to_semit a + 12 * e
@@ -58,19 +68,19 @@ nota_to_PC (Nota n a e) = notabasica_to_pc n + alt_to_semit a + 12 * e
             | nb == La = 9
             | nb == Si = 11
 
-notas_basicas :: [BPC]
-notas_basicas = [Do .. ]
+all_notas_basicas :: [BPC]
+all_notas_basicas = [Do .. ]
 
-notas_americanas :: [APC]
-notas_americanas = [C .. ]
+all_notas_americanas :: [APC]
+all_notas_americanas = [C .. ]
 
-alteraciones :: [Alteracion]
-alteraciones = [BB .. ]
+all_alteraciones :: [Alteracion]
+all_alteraciones = [BB .. ]
 
 
 tradicional_a_americano :: BPC -> APC
-tradicional_a_americano nota = notas_americanas !! i
-    where i = index notas_basicas nota
+tradicional_a_americano nota = all_notas_americanas !! i
+    where i = index all_notas_basicas nota
 
 alterar :: Nota -> Int -> Nota
 alterar n x 
@@ -82,12 +92,12 @@ alterar n x
 sostenido :: Nota -> Nota
 sostenido (Nota n alteracion oct)
     | alteracion == SS = error "No acepto triples sostenidos"
-    | otherwise = newNote n (ldesp alteracion alteraciones (+)) oct
+    | otherwise = newNote n (ldesp alteracion all_alteraciones (+)) oct
 
 bemol :: Nota -> Nota
 bemol (Nota n alteracion oct)
     | alteracion == BB = error "No acepto triples bemoles"
-    | otherwise = newNote n (ldesp alteracion alteraciones (-)) oct
+    | otherwise = newNote n (ldesp alteracion all_alteraciones (-)) oct
 
 dobleSostenido :: Nota -> Nota
 dobleSostenido = (sostenido.sostenido)

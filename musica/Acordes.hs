@@ -3,12 +3,26 @@ module Acordes where
 import Notas
 import Intervalos
 
-doMayor :: [Nota]
-doMayor = [n1, n2, n3]
-    where 
-        n1 = newNote Do N 1
-        n2 = newNote Mi N 1
-        n3 = newNote Sol N 1
+acorde :: [Int] -> [Modif] -> Nota -> [Nota]
+acorde ints mods = aplicarIntervalos intervalos
+    where
+        intervalos = [I(xs) | xs <- tuplas]
+        tuplas = zip ints mods
+
+acordeTriada :: [Modif] -> Nota -> [Nota]
+acordeTriada = acorde [3,5]
+
+trMayor :: Nota -> [Nota]
+trMayor = acordeTriada [Maj, J]
+
+trMenor :: Nota -> [Nota]
+trMenor = acordeTriada [Min, J]
+
+trAumentada :: Nota -> [Nota]
+trAumentada = acordeTriada [Maj, Aum]
+
+trDisminuida :: Nota -> [Nota]
+trDisminuida = acordeTriada [Min, Dim]
 
 generarIntervalos :: [Nota] -> [Intervalo]
 generarIntervalos xs = map (intervalo_2notas head) tail
@@ -17,7 +31,7 @@ generarIntervalos xs = map (intervalo_2notas head) tail
 aplicarIntervalos :: [Intervalo] -> Nota -> [Nota]
 aplicarIntervalos xs n
     | any (not.intervValido) xs = error "Intervalo no válido"
-    | otherwise = n : map (\interv -> calc_intervalo n interv) xs
+    | otherwise = n : map (\interv -> calcIntervalo n interv) xs
 
 
 
