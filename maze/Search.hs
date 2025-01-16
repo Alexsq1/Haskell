@@ -2,17 +2,12 @@ module Search(dfs) where
 
 
 import Maze
+import DataStructures
 import Utils
 import Data.List
 import Data.Either
 
-
-adjacent :: Maze -> Square -> [Square]
---adjacent m (x, y) = [(xa, ya) | xa <- [x - 1 .. x + 1], ya <- [y - 1 .. y + 1], ((x == xa) /= (y == ya)) && (not (isWall m (xa, ya)))  && validSquare m (xa, ya)]
-adjacent m (x, y) = filter (\t -> (not (isWall m t)) && validSquare m t) cands
-    where 
-        cands = [(x+1, y), (x, y+1), (x-1, y), (x, y-1)]
-    
+ 
 euclidDistance :: Square -> Square -> Float
 euclidDistance (x1, y1) (x2, y2) = sqrt (((xf1 - xf2) ^ 2) + ((yf1 - yf2) ^ 2))
     where
@@ -22,6 +17,22 @@ manhattanDistance :: Square -> Square -> Integer
 manhattanDistance (x1, y1) (x2, y2) = abs (x1 - x2) + abs (y1 - y2)
 
 
+adjacent :: Maze -> Square -> [Square]
+adjacent m (x, y) = filter (\t -> (not (isWall m t)) && validSquare m t) cands
+    where 
+        cands = [(x+1, y), (x, y+1), (x-1, y), (x, y-1)]
+
+expandValidPaths :: Maze -> [Square] -> [[Square]]
+expandValidPaths m [] = [[]]
+expandValidPaths m currPath = xpValids
+    where
+        lastSquare = last currPath
+        adjSquares = adjacent m lastSquare
+        expanded = map (\new -> currPath ++ [new]) adjSquares    --generamos adyacentes, añadiendo el path al inicio. 
+        xpValids = filter (\path -> length path > length currPath) (map unique expanded)          
+                                                                --de los caminos generados, eliminamos duplicados/ciclos 
+                                                                --y los que no añaden no añaden nodos nuevos los borramos
+          
 {-
 Programar:
 Búsqueda en anchura         Hecho
@@ -53,11 +64,10 @@ Podría estar chulo explorar las ramas del dfs según heurística
 walls = ( [(1,y) | y <- [2 .. 8] ] ++ [(y,1) | y <- [1 .. 4] ] ++ [(y,1) | y <- [8 .. 9] ] ++ [(4,y) | y <- [4 .. 8] ] ++ [(6,y) | y <- [2 .. 8] ]  ++ [(7,9),(5,3), (4,0)])
 -}
 
-
+          
 
 checkSquares :: Maze -> [Square] -> Bool
 checkSquares m xs = and (map (validSquare m) xs)
-
 
 dfs :: Maze -> Integer -> Square -> Square -> [Square]
 dfs m dMax ini fin
@@ -97,23 +107,18 @@ dfs m dMax ini fin
 bfs :: Maze -> Square -> Square -> [Square]
 bfs m ini fin
     | not (checkSquares m [ini, fin]) = error "Not valid squares"
-    | otherwise = bfs_aux m [[ini]] fin
+    | otherwise = bfs_aux m (newFifo [[ini]]) fin
     where
-
-        bfs_aux :: Maze -> [[Square]] -> Square -> [Square]
-        bfs_aux m [] fin = []
-        bfs_aux m (x:xs) fin
-            | lastSquare == fin = x                          --encontrado: devolver path
-            | news == [] = bfs_aux m xs fin                  --no encontrado, pero actual no genera nuevos: seguir buscando sin añadir nada
-            | otherwise = bfs_aux m (xs ++ expanded) fin     --no encontrado: expandir inicial y seguir buscando
-
+        bfs_aux :: Maze -> Fifo [Square] -> Square -> [Square]
+        bfs_aux m fifo fin
+            | null fifo = []                                            --Fifo vacía: devolver nulo
+            | lastSquare == fin = currPath                          --encontrado: devolver path
+            | otherwise = bfs_aux m nextFifo fin     --no encontrado: expandir inicial y seguir buscando
                 where 
-                    lastSquare = last x
-                    news = adjacent m lastSquare
-                    expanded = map (\new -> x ++ [new]) news    --generamos adyacentes, añadiendo el path al inicio. 
-                    expandedValid = filter (\path -> length path > length x) (map unique expanded)          
-                                                                --de los caminos generados, eliminamos duplicados/ciclos 
-                                                                --y los que no añaden no añaden nodos nuevos los borramos
+                    Just (currPath, restFifo) = dequeue fifo
+                    lastSquare = last currPath
+                    newPaths = expandValidPaths m currPath
+                    nextFifo = enqueueMult newPaths restFifo
 
 
 --Algoritmo de profundidad iterativa:
@@ -205,12 +210,13 @@ astar m heuristic ini fin
         astarAux :: Maze -> (Square -> Integer) -> [Path] -> Square -> [Square]
         astarAux _ _ [] _ = []
         astarAux m heuristic ((Path route real expected) : rest) fin
-            | lastSquare == fin = route
+            | lastSquare == fin = route                                 --camino encontrado
             | nextPathSituation == [] = astarAux m heuristic rest fin
             | otherwise = astarAux m heuristic nextPathSituation fin 
 
             where
                 lastSquare = last route
+
                 adjs = (adjacent m lastSquare)
                 sqsExpanded = map (\new -> route ++ [new]) adjs    --generamos path actual + adyacentes
 
@@ -219,13 +225,14 @@ astar m heuristic ini fin
                 genPath = map (\sqs -> Path sqs (real + 1) (real + (heuristic (last sqs)))) adjsValid      --Generar con formato Path [Sq] Integer, calculando long esperada
                 nextPathSituation = zipSort genPath rest
 
+--Mejorar: nodos en priority queue
 
 idaStar :: Maze -> (Square -> Integer) -> Square -> Square -> [Square]
 idaStar m heuristic ini fin 
     | not (checkSquares m [ini, fin]) = error "Not valid squares"
     | otherwise = idaStarAux m heuristic 1 (numSquares m) ini fin
 
-        {-dfs devuelve:
+        {-idaStarAux devuelve:
         Right [Square] -> Hubo camino (contando vacío)
         Left Integer -> Poda, da mayor camino estimado
         -}
@@ -241,8 +248,6 @@ idaStar m heuristic ini fin
                 thisSearch = dfs_sgle m heuristic 0 dCurr [] ini fin 
                 (pruned, dLongest) = fromLeft (False, 0) thisSearch
                 dNew = max dLongest (dCurr + 1)
-
-
 
         dfs_sgle :: 
             Maze -> (Square -> Integer) -> Integer -> Integer -> [Square] -> Square -> Square -> Either (Bool, Integer) [Square]
