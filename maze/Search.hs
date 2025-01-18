@@ -1,4 +1,4 @@
-module Search(dfs) where
+module Search where
 
 
 import Maze
@@ -61,7 +61,8 @@ Podría estar chulo explorar las ramas del dfs según heurística
 
 
 {-
-walls = ( [(1,y) | y <- [2 .. 8] ] ++ [(y,1) | y <- [1 .. 4] ] ++ [(y,1) | y <- [8 .. 9] ] ++ [(4,y) | y <- [4 .. 8] ] ++ [(6,y) | y <- [2 .. 8] ]  ++ [(7,9),(5,3), (4,0)])
+walls1 = (genWalls (1,2) (1,8)) ++ (genWalls (1,1) (4,1)) ++ (genWalls (8,1) (9,1)) ++ (genWalls (4,4) (4,8)) ++ (genWalls (6,2) (6,8)) ++ [(7,9), (5,3), (4,0)]
+    
 -}
 
           
@@ -227,10 +228,11 @@ astar m heuristic ini fin
 
 --Mejorar: nodos en priority queue
 
+
 idaStar :: Maze -> (Square -> Integer) -> Square -> Square -> [Square]
 idaStar m heuristic ini fin 
     | not (checkSquares m [ini, fin]) = error "Not valid squares"
-    | otherwise = idaStarAux m heuristic 1 (numSquares m) ini fin
+    | otherwise = idaStarAux m heuristic (heuristic ini) (numSquares m) ini fin
 
         {-idaStarAux devuelve:
         Right [Square] -> Hubo camino (contando vacío)
@@ -239,31 +241,30 @@ idaStar m heuristic ini fin
 
     where
         idaStarAux :: Maze -> (Square -> Integer) -> Integer -> Integer -> Square -> Square -> [Square]
-        idaStarAux m heuristic dCurr dMax ini fin 
-            | dCurr > dMax = []                                                         --No seguir profundizando, llegado a estimación de prof máxima
-            | isLeft thisSearch && pruned = idaStarAux m heuristic (dNew) dMax ini fin  --Seguir profundizando, no has llegado y ha habido poda
-            | isRight thisSearch = fromRight [] thisSearch                              --Camino encontrado, devolver
-            | otherwise = []
+        idaStarAux m heuristic dCurr ultimateD ini fin 
+            | dCurr > ultimateD = []                                                            --Llegado a estimación de prof máx: no hay solución
+            | isLeft thisSearch && pruned = idaStarAux m heuristic dLongest ultimateD ini fin   --Camino no encontrado con podas: seguir profundizando
+            | isRight thisSearch = fromRight [] thisSearch                                      --Camino encontrado, devolver
+            | otherwise = []                                                                    --Camino no encontrado, no hay podas: no hay camino
             where
-                thisSearch = dfs_sgle m heuristic 0 dCurr [] ini fin 
-                (pruned, dLongest) = fromLeft (False, 0) thisSearch
-                dNew = max dLongest (dCurr + 1)
+                thisSearch = dfs_sgle m heuristic 0 dCurr [] ini fin                            --Búsqueda dfs
+                (pruned, dLongest) = fromLeft (False, 0) thisSearch                             --Recuperar valores
 
         dfs_sgle :: 
             Maze -> (Square -> Integer) -> Integer -> Integer -> [Square] -> Square -> Square -> Either (Bool, Integer) [Square]
         dfs_sgle m heuristic dCurr dMax visited ini fin
-            | dCurr > dMax = Left (True, (dCurr + heuristic ini))                           --profundidad máxima: poda
+            -- | dCurr > dMax = Left (True, (dCurr + heuristic ini))                           --profundidad máxima: poda
+            | thisSqEstimatedPath > dMax = Left (True, thisSqEstimatedPath)                 --ruta estimada mayor que cota: devolver estim. de camino
             | ini == fin = Right [ini]                                                      --camino encontrado: pasar a llamante
             | ini `elem` visited = Left (False, 0)                                          --ini visitado
-            | (null adjValid) && ((not . null) adj) = Left (True, (dCurr + heuristic ini))  --poda, todos los nodos exceden de máxima                      
-            | null adj = Left (False, (dCurr + heuristic ini))                              --no hay poda, camino sin solución
-            | isLeft branch = branch                                                        --no se ha encontrado camino, subir solución
-            | otherwise = Right (ini : (fromRight [] branch))                               --recomponer camino de llamada correcta
+            | null adj = Left (False, (dCurr + heuristic ini))                              --Camino sin solución (callejón sin salida)
+            | isLeft branch = branch                                                        --no se ha encontrado camino, subir cota mín que supere cota
+            | otherwise = Right (ini : (fromRight [] branch))                               --camino encontrado: recomponer camino de llamada correcta
 
             where 
-                adj = (adjacent m ini) \\ visited                                               --adyacentes no visitados
-                adjValid = filter (\x -> (dCurr + (heuristic x)) <= dMax) adj                   --adyacentes con dist menor que la poda
-                branch = dfs_multiple m heuristic (dCurr + 1) dMax adjValid (ini : visited) fin --Búsqueda en hijos
+                thisSqEstimatedPath = dCurr + (heuristic ini)                               --estimación de ruta que pasa por nodo actual
+                adj = (adjacent m ini) \\ visited                                           --adyacentes no visitados
+                branch = dfs_multiple m heuristic (dCurr + 1) dMax adj (ini : visited) fin  --Búsqueda en hijos
 
         dfs_multiple :: 
             Maze -> (Square -> Integer) -> Integer -> Integer -> [Square] -> [Square] -> Square -> Either (Bool, Integer) [Square]
@@ -272,14 +273,14 @@ idaStar m heuristic ini fin
         dfs_multiple m heuristic dCurr dMax (x:xs) visited fin                          --iterar sobre las ramas
             | isRight thisBranch = thisBranch                                           --Camino encontrado: subir solución
             | isRight (otherBranches) = otherBranches                                   --Camino encontrado en otro vecino
-            | otherwise = Left ((pruned1 || pruned2), (max num1 num2))                  --Unificar ramas vecinas
+            | otherwise = Left ((pruned1 || pruned2), (max num1 num2))                  --Camino no encontrado: Unificar ramas vecinas
 
             where 
                 thisBranch = dfs_sgle m heuristic dCurr dMax visited x fin              --Profundizar en tu rama
                 otherBranches = dfs_multiple m heuristic dCurr dMax xs visited fin      --Recorrer (recursivamente) rama de los vecinos
                 (pruned1, num1) = fromLeft (False, 0) thisBranch
                 (pruned2, num2) = fromLeft (False, 0) otherBranches
-                    
+                            
 
 --Cuidado: si sabemos que hay camino todo es mucho más fácil. No hay que hacer ciertas comprobaciones de si ha habido 
 --podas y seguir aumentando (siempre habría que seguir aumentando)

@@ -1,4 +1,4 @@
-module Maze(Square, Maze, newMaze, isWall, validSquare, numSquares) where
+module Maze(Square, Maze, newMaze, isWall, genWalls, validSquare, numSquares) where
 
 
 --codificación de un laberinto: casillas "libres" y "paredes"
@@ -28,6 +28,9 @@ displaySq m sq = if (isWall m sq) then "X " else ". "
 
 isWall :: Maze -> Square -> Bool
 isWall maze sq = elem sq (walls maze)
+
+genWalls :: (Square) -> (Square) -> [(Square)]
+genWalls (x1, y1) (x2, y2) = [(x,y) | x <- [x1 .. x2] , y <- [y1 .. y2]]
 
 validSquare :: Maze -> Square -> Bool
 validSquare maze (x, y) = x < (rows maze) && x >= 0 &&
