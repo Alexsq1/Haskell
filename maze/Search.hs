@@ -68,7 +68,7 @@ walls1 = (genWalls (1,2) (1,8)) ++ (genWalls (1,1) (4,1)) ++ (genWalls (8,1) (9,
           
 
 checkSquares :: Maze -> [Square] -> Bool
-checkSquares m xs = and (map (validSquare m) xs)
+checkSquares m xs = and (map (validSquare m) xs) && and (map (\sq -> not (isWall m sq)) xs)
 
 dfs :: Maze -> Integer -> Square -> Square -> [Square]
 dfs m dMax ini fin
