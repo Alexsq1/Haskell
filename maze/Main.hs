@@ -53,8 +53,8 @@ allSearchs m ini fin = do
     putStrLn $ show m
     putStrLn $ "\nProbando IDA* en laberinto:\n" ++ show (idaStar m (manhattanDistance fin) ini fin)
     putStrLn $ "\nProbando A* en laberinto:\n" ++ show (astar m (manhattanDistance fin) ini fin)
-    putStrLn $ "\nProbando iddfs:\n" ++ show (iddfs m ini fin)
-    putStrLn $ "\nProbando simpleIddfs:\n" ++ show (simpleIddfs m ini fin)
-    putStrLn $ "\nProbando dfs:\n" ++ show (dfs m 1000 ini fin)
-    putStrLn $ "\nProbando bfs:\n" ++ show (bfs m ini fin)
+    --putStrLn $ "\nProbando iddfs:\n" ++ show (iddfs m ini fin)
+    --putStrLn $ "\nProbando simpleIddfs:\n" ++ show (simpleIddfs m ini fin)
+    --putStrLn $ "\nProbando dfs:\n" ++ show (dfs m 1000 ini fin)
+    --putStrLn $ "\nProbando bfs:\n" ++ show (bfs m ini fin)
     
