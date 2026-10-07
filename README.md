@@ -2,7 +2,7 @@
 
 Some miscelaneous projects I did for learning Haskell.
 
-##Includes
+## Includes
 
 - fracciones.hs: a basic fractions calculator for learning to use data types.
 - matrices.hs: basic matrix calculator with generators, operations. Includes Gaussian elimination.
